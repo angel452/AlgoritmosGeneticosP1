@@ -308,7 +308,7 @@ class Genetic_algorithm {
       cout << endl;
       
       vector<int> poblacion_cruzada;
-      for(int i = 0; i < poblacion.size(); i = i + 2){
+      for(int i = 0; i < poblacion_before_cross.size(); i = i + 2){
         int a, b;
         // * Intercambiamos el mas apto (primera posicion) con el resto
         intercambiar(listInBinary[i], listInBinary[i+1], a, b);
@@ -384,7 +384,7 @@ class Genetic_algorithm {
 // ######################## MAIN ###############################
 int main() {
   // --> test1(numero de poblaciones, minimo, maximo, numero de Epocas)
-  Genetic_algorithm test1(4, 0, 31, 3);
+  Genetic_algorithm test1(100, 0, 31, 14);
   cout << "Poblacion: -->  ";
   test1.printPoblacion();
   cout << endl;
