@@ -8,11 +8,15 @@
 #include <random>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <random>
 
 using namespace std;
 
 std::random_device rd;
 std::mt19937 gen(rd());
+
+vector<int> posicionesEliminadas;
 
 // ######################## FUNCIONES #########################
 int random(int low, int high) {
@@ -109,6 +113,7 @@ class Genetic_algorithm {
       mediaVA = 0;
       sumaVA = 0;
       maximoVA = 0;
+      posicionesEliminadas.clear();
 
       /*
       cout << "--------- Variables limpiadas -------------" << endl;
@@ -176,6 +181,7 @@ class Genetic_algorithm {
       cout << "Resultados funcion: " << endl;
       printPoblacionMaximizada();
       printResultados(suma, media, maximo);
+      escribirNumerosEnArchivo(suma, media, maximo);
     }
 
     // * Construccion de la tabla
@@ -237,6 +243,7 @@ class Genetic_algorithm {
       cout << "Resultados Valor actual: " << endl;
       printValorActual();
       printResultados(sumaVA, mediaVA, maximoVA);
+      
     }
 
     void intercambiar(std::string &a, std::string &b, int &intA, int &intB) {
@@ -326,16 +333,167 @@ class Genetic_algorithm {
       cout << "Nueva poblacion (Despues del cruze): "; printPoblacion();
     }
 
+    void eliminarElementosConProbabilidades(vector<double> pSelect, int cantidadAEliminar) {
+      // Numero aleatorio para eliminar datos
+      std::random_device rd;
+      std::mt19937 gen(rd());
+      std::uniform_real_distribution<double> distribucion(0.0, 1.0);
+
+      // Numero aleatorio para escoger la posicion del vector a evaluar
+      std::random_device rd2;
+      std::mt19937 gen2(rd2());
+      std::uniform_int_distribution<int> distribucion2(0, pSelect.size()-1);
+
+      int nEliminados = 0;
+      while(nEliminados < cantidadAEliminar){
+        double numeroAleatorio = distribucion(gen);
+        int posicionAleatoria = distribucion2(gen2);
+
+        if(numeroAleatorio > pSelect[posicionAleatoria]){
+          cout << "Eliminamos el dato: " << pSelect[posicionAleatoria] <<  " - NumAleatorio es:" << numeroAleatorio << endl;
+          cout << numeroAleatorio << " > " << pSelect[posicionAleatoria] << endl << endl;
+
+          // Eliminar el elemento j
+          pSelect[posicionAleatoria] = 1.0;
+          // Guardamos en que posicion se elimino
+          posicionesEliminadas.push_back(posicionAleatoria);
+          // Aumentamos el numero de eliminados
+          nEliminados++;
+
+          // Imprimimos vector
+          cout << endl;
+          for(int i = 0; i < pSelect.size(); i++){
+            cout << pSelect[i] << " ";
+          }
+          cout << endl << endl;
+        }
+        else{
+          cout << "El dato " << pSelect[posicionAleatoria] << " no se elimina. RANDOM fue " << numeroAleatorio << endl;
+        }
+
+        /*
+        for (size_t j = 0; j < probabilidades.size(); ++j) {
+          //acumuladorProbabilidades += probabilidades[j];
+          if (numeroAleatorio > probabilidades[j]) {
+            cout << "Eliminamos el dato: " << probabilidades[j] << " en la posicion " << j << " - Probabilidad: " << numeroAleatorio << endl;
+
+            // Eliminar el elemento j
+            probabilidades[j] = 100.0;
+            // Guardamos en que posicion se elimino
+            posicionesEliminadas.push_back(j);
+            // Aumentamos el numero de eliminados
+            nEliminados++;
+
+            // Imprimimos vector
+            cout << endl;
+            for(int i = 0; i < probabilidades.size(); i++){
+              cout << probabilidades[i] << " ";
+            }
+            cout << endl << endl;
+
+            break;
+          }
+        }
+        */
+      }
+
+      cout << "Posiciones que tenemos que eliminar: " ;
+      for(int i = 0; i < posicionesEliminadas.size(); i++){
+        cout << posicionesEliminadas[i] << " ";
+      }
+      cout << endl;
+
+    }
+
+    void cruzamientoV2(){
+      cout << "--> Cruzamiento" << endl;
+
+      // * Calculamos cuantos elementos se eliminaran
+      int nEliminados = poblacion.size() - ((poblacion.size() / 2) + 1);
+      cout << "Con poblacion " << poblacion.size() << ", se eliminan " << nEliminados << " elementos" << endl;
+
+      // * Obtenemos las posiciones de los elementos que tenemos que eliminar
+      eliminarElementosConProbabilidades(pSelect, nEliminados);
+
+      // * Obtenemos los numeros de las pociociones que tenemos que eliminar
+      vector<int> posicionesAEliminarAUX;
+      for(int i = 0; i < posicionesEliminadas.size(); i++){
+        posicionesAEliminarAUX.push_back(poblacion[posicionesEliminadas[i]]);
+      }
+
+      // * Eliminamos los elementos de la poblacion
+      for(int i = 0; i < posicionesAEliminarAUX.size(); i++){
+        vector<int>::iterator it = find(poblacion.begin(), poblacion.end(), posicionesAEliminarAUX[i]);
+        if (it != poblacion.end()) {
+          poblacion.erase(it);
+        }
+      }
+
+      // * Ordenamos
+      sort(poblacion.rbegin(), poblacion.rend());
+      cout << "Nueva poblacion (Antes del cruze): "; printPoblacion();
+
+      int numCruzes = poblacion.size()-1;
+
+      vector<int> poblacion_before_cross;
+      // * Tengo: poblacion {24 19 13}. Tengo que transformarlo a {24 19 24 13}
+      for(int i = 1; i <= numCruzes; i++){
+        poblacion_before_cross.push_back(poblacion[0]);
+        poblacion_before_cross.push_back(poblacion[i]);
+      }
+
+      cout << "Poblacion AUX: ";
+      for(int i = 0; i < poblacion_before_cross.size(); i++){
+        cout << poblacion_before_cross[i] << " ";
+      }
+      cout << endl;
+
+      vector<string> listInBinary = convertirABinario(poblacion_before_cross);
+      cout << "Poblacion en binario: ";  
+      for(int i = 0; i < listInBinary.size(); i++){
+        cout << listInBinary[i] << " ";
+      }
+      cout << endl;
+      
+      vector<int> poblacion_cruzada;
+      for(int i = 0; i < poblacion_before_cross.size(); i = i + 2){
+        int a, b;
+        // * Intercambiamos el mas apto (primera posicion) con el resto
+        intercambiar(listInBinary[i], listInBinary[i+1], a, b);
+        poblacion_cruzada.push_back(a);
+        poblacion_cruzada.push_back(b);
+      }
+      
+      //sort(poblacion_cruzada.rbegin(), poblacion_cruzada.rend());
+
+      poblacion.clear();
+      for (int i = 0; i < poblacion_cruzada.size(); i++) {
+        poblacion.push_back(poblacion_cruzada[i]);
+      }
+
+      cout << "Nueva poblacion (Despues del cruze): "; printPoblacion();
+    }
+
     void ejecucion() {
       for (int i = 0; i < epocas - 1; i++) {
         modelar(i + 1);
-        cruzar();
+        //cruzar();
+        cruzamientoV2();
       }
       cout << endl << "Ultima Epoca: " << epocas << endl;
       maximizar();
       cout << "######## FIN DE LAS EPOCAS ########" << endl;
     }
-
+    
+    void escribirNumerosEnArchivo(int numero1, int numero2, int numero3) {
+      std::ofstream archivo("data.txt", std::ios_base::app);
+      if (!archivo.is_open()) {
+        std::cerr << "Error al abrir el archivo." << std::endl;
+        return;
+      }
+      archivo << numero1 << "," << numero2 << "," << numero3 << std::endl;
+      archivo.close();
+    }
     // * FUNCIONES DE IMPRESION
     void printResultados(double suma, double media, double maximo) {
       cout << "* Suma: " << std::fixed << std::setprecision(3) << suma << endl;
@@ -384,7 +542,10 @@ class Genetic_algorithm {
 // ######################## MAIN ###############################
 int main() {
   // --> test1(numero de poblaciones, minimo, maximo, numero de Epocas)
-  Genetic_algorithm test1(100, 0, 31, 14);
+  
+  //Genetic_algorithm test1(50, 0, 31, 15);
+  Genetic_algorithm test1(100, 0, 100, 20);
+
   cout << "Poblacion: -->  ";
   test1.printPoblacion();
   cout << endl;
